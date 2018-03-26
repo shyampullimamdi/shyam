@@ -1,0 +1,4 @@
+swcm {
+
+    pkg name: 'sli-group-mapper',  group: 'com.ericsson.eea', version: '1.40'
+}

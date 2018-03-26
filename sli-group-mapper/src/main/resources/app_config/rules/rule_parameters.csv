@@ -1,0 +1,20 @@
+# This file threshold parameters key in by rule id. Parameters are defined down to the RULE_ID only!!!
+# Every row is expressed as csv row, containing:
+#   RuleID: Base rule id as defined in the drl file I.e WEB_01
+#   Execution: allowed values yes or no. A value of No excludes the rules from the RE knowledge base.
+#   Threshold: This must be expressed as valid JSON string expressed as { "PARAMATER_KEY1":VALUE1,"PARAMATER_KEY2":VALUE2,...}
+#
+# if threshold are not needed for a given rule the word NULL can be placed or no value
+#RuleID;Execution;Enable;Threshold;
+############ DPA RULES
+ UGM_01_default    ; yes; no; {"group":     "default" ,"percentage": 0.5  ,"customer_class_last_eea": "'Business'"};
+ UGM_01_business   ; yes; no; {"group":    "business" ,"percentage": 0.5  ,"customer_class_last_eea": "'Business'"};
+ UGM_02_high_arpu  ; yes; no; {"group":   "high_arpu" ,"percentage": 0.25 ,"arpu_grp_eea"           : "High"      };
+ UGM_03_heavy_data ; yes; no; {"group":  "heavy_data" ,"percentage": 0.25 ,"data_count_grp_eea"     : "High"      };
+ UGM_03_heavy_audio; yes; no; {"group": "heavy_audio" ,"percentage": 0.25 ,"audio_count_grp_eea"    : "High"      };
+ UGM_03_ios_lte    ; yes; no; {"group":      "ios_lte", "percentage": 0.2, "terminal.os"           : "IOS"                    , "terminal.access_capability" : "LTE"};
+UGM_03_android_lte; yes; no; {"group":  "android_lte", "percentage": 0.2, "terminal.os"           : "ANDROID"                , "terminal.access_capability" : "LTE"};
+########## SNCD RULES
+ UGM_01_sncddefault    ; yes; no; {"group":     "defaultsncd" ,"percentage": 0.5  ,"customer_class_last_eea": "'Business'"};
+ UGM_01_prepaid    ; yes; no; {"group":     "prepaid" ,"percentage": 0.25 ,"customer_type_last_eea" : "PRE"       };
+ #

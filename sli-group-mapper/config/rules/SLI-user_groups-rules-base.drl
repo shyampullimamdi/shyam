@@ -1,0 +1,522 @@
+package com.ericsson.eea.sli.grouping
+// @release=15.1
+// @version=1.0
+
+/*
+ * Drool file containing the base rules for the SLI user groups assignments.
+ * Notes:
+ *   1- This base rule should not contain hard coded threshold or values that may need to be changed on site.
+ *      They should be defined using the common API: getRuleParamater("rule_id", "Paramater_name").
+ *
+ *   2- All parameters must be defined in: 'hdfs://$CEA_HDFS_HOME/group-mapper/config/rules/rule_paramaters.csv'.
+ *      The rule_parameters is a CSV file that is initially delivered with all predefined threshold values
+ *      which can be changed on site by customer.
+ *
+ *   3- The base '.drl' file is digitally signed and should not be changed, except by authorized users having the
+ *      cryptographic key.
+ */
+
+
+// Includes ===================================================================================================================
+import java.util.Map;
+
+import org.slf4j.Logger;
+
+import com.ericsson.eea.ark.offline.rules.events.Event_Timer;
+import com.ericsson.eea.ark.offline.rules.events.Event_Generic;
+
+import com.ericsson.eea.ark.sli.grouping.rules.events.Event_DPA;
+import com.ericsson.eea.ark.sli.grouping.rules.events.Event_SNCD;
+
+/**
+ * @return the parameter Key value of the requested type.
+ */
+function Boolean mapContainsKey(Object map, Object key) {
+
+   return ((Map) map).containsKey(key);
+}
+
+
+/**
+ * @return the parameter Key value of the requested type.
+ */
+function Object mapGet(Object map, Object key, Class type) {
+
+   return ((Map) map).get(key);
+}
+
+
+/**
+ * @return the parameter Key value of the requested type.
+ */
+function Boolean strContainsVal(Object str, Object val) {
+
+   return ((String) str).indexOf(val.toString()) >= 0;
+}
+
+
+/**
+ * @return the input string up-cased.
+ */
+function String upper(String str) {
+
+   return str.toUpperCase();
+}
+
+
+
+// Global data and functions ==================================================================================================
+global Logger log;
+
+global com.ericsson.eea.ark.offline.rules.utils.Util util;
+
+
+
+// Event declaration ==========================================================================================================
+dialect "mvel"
+
+declare Event_DPA
+    @role(event)
+    @timestamp(timestamp)
+    @expires(1d)
+end
+
+declare Event_SNCD
+    @role(event)
+    @timestamp(timestamp)
+    @expires(1d)
+end
+
+declare Event_Timer
+    @role(event)
+    @expires(1d)
+end
+
+
+
+
+// Rules Implementation =======================================================================================================
+/*
+ * customer_class_last_eea != Business => group: 'default', percentage: 0.5
+ */
+
+/*
+ * @rule_id    = UGM_01_default
+ * @parameters = {"customer_class_last_eea": "'Business'", percentage: 0.5, group: "default", percentage: 0.5}
+ */
+/**/
+rule "UGM_01_default"
+
+when
+   dpa: Event_DPA( imsi != null
+
+      ,             rid: "UGM_01_default"
+      ,            parm: "customer_class_last_eea"
+
+      ,             val: get             (                  "customer_class_last_eea"              ) != null
+      ,       parm_vals: getRuleParameter("UGM_01_default", "customer_class_last_eea", String.class) != null
+
+      ,                  !strContainsVal(parm_vals, val)
+   )
+
+then
+   group      = dpa.getRuleParameter(rid, "group"     , String.class); if (group      == null) group      = "default"
+   percentage = dpa.getRuleParameter(rid, "percentage", Double.class); if (percentage == null) percentage = 0.5d
+
+   if (log.isDebugEnabled()) log.debug("Rule "+rid+" fired: {'imsi': '"+dpa.imsi+"'"\
+      +                                                  ", 'group': '"+group+"'"\
+      +                                             ", 'pencentage': "+percentage+"}"\
+      +                                                ", condition: ("+parm+" == '"+val+"')")
+
+   dpa.write_userGroup(dpa.imsi, group.toString(), percentage.toString())
+end
+/**/
+
+
+/*
+ * customer_class_last_eea == Business => group: 'business', percentage: 0.5
+ */
+
+/*
+ * @rule_id    = UGM_01_business
+ * @parameters = {"customer_class_last_eea": "'Business'", "percentage": 0.5, group: "business", percentage: 0.5}
+ */
+rule "UGM_01_business"
+
+when
+   dpa: Event_DPA( imsi != null
+
+      ,            rid: "UGM_01_business"
+      ,           parm: "customer_class_last_eea"
+
+      ,            val: get             (                   "customer_class_last_eea"              ) != null
+      ,      parm_vals: getRuleParameter("UGM_01_business", "customer_class_last_eea", String.class) != null
+
+      ,                strContainsVal(parm_vals, val)
+   )
+
+then
+   group      = dpa.getRuleParameter(rid, "group"     , String.class); if (group      == null) group      = "business"
+   percentage = dpa.getRuleParameter(rid, "percentage", Double.class); if (percentage == null) percentage = 0.5d
+
+   if (log.isDebugEnabled()) log.debug("Rule "+rid+" fired: {'imsi': '"+dpa.imsi+"'"\
+      +                                                  ", 'group': '"+group+"'"\
+      +                                             ", 'pencentage': "+percentage+"}"\
+      +                                                ", condition: ("+parm+" == '"+val+"')")
+
+   dpa.write_userGroup(dpa.imsi, group.toString(), percentage.toString())
+end
+/**/
+
+
+/*
+ * arpu_grp_eea == High => group: 'high_arpu', percentage: 0.25
+ */
+
+/*
+ * @rule_id    = UGM_02_high_arpu
+ * @parameters = {"arpu_grp_eea": "High", "percentage": 0.25}
+ */
+rule "UGM_02_high_arpu"
+
+when
+   dpa: Event_DPA( imsi != null
+
+      ,            rid: "UGM_02_high_arpu"
+      ,           parm: "arpu_grp_eea"
+
+      ,            val: get             (                    "arpu_grp_eea"              ) != null
+      ,       parm_val: getRuleParameter("UGM_02_high_arpu", "arpu_grp_eea", String.class) != null
+
+      ,                 val == parm_val
+   )
+
+then
+   group      = dpa.getRuleParameter(rid, "group"     , String.class); if (group      == null) group      = "high_arpu"
+   percentage = dpa.getRuleParameter(rid, "percentage", Double.class); if (percentage == null) percentage = 0.25d
+
+   if (log.isDebugEnabled()) log.debug("Rule "+rid+" fired: {'imsi': '"+dpa.imsi+"'"\
+      +                                                  ", 'group': '"+group+"'"\
+      +                                             ", 'pencentage': "+percentage+"}"\
+      +                                                ", condition: ("+parm+" == '"+val+"')")
+
+   dpa.write_userGroup(dpa.imsi, group.toString(), percentage.toString())
+end
+/**/
+
+
+/*
+ * data_count_grp_eea == High => group: 'heavy_data', percentage: 0.25
+ */
+
+/*
+ * @rule_id    = UGM_03_heavy_data
+ * @parameters = {"data_count_grp_eea": "High", "percentage": 0.25}
+ */
+rule "UGM_03_heavy_data"
+
+when
+   dpa: Event_DPA( imsi != null
+
+      ,            rid: "UGM_03_heavy_data"
+      ,           parm: "data_count_grp_eea"
+
+      ,            val: get             (                     "data_count_grp_eea"              ) != null
+      ,       parm_val: getRuleParameter("UGM_03_heavy_data", "data_count_grp_eea", String.class) != null
+
+      ,                 val == parm_val
+   )
+
+then
+   group      = dpa.getRuleParameter(rid, "group"     , String.class); if (group      == null) group      = "heavy_data"
+   percentage = dpa.getRuleParameter(rid, "percentage", Double.class); if (percentage == null) percentage = 0.25d
+
+   if (log.isDebugEnabled()) log.debug("Rule "+rid+" fired: {'imsi': '"+dpa.imsi+"'"\
+      +                                                  ", 'group': '"+group+"'"\
+      +                                             ", 'pencentage': "+percentage+"}"\
+      +                                                ", condition: ("+parm+" == '"+val+"')")
+
+   dpa.write_userGroup(dpa.imsi, group.toString(), percentage.toString())
+end
+/**/
+
+
+/*
+ * audio_count_grp_eea == High => group: 'heavy_audio', percentage: 0.25
+ */
+
+/*
+ * @rule_id    = UGM_03_heavy_audio
+ * @parameters = {"audio_count_grp_eea": "High", "percentage": 0.25}
+ */
+rule "UGM_03_heavy_audio"
+
+when
+   dpa: Event_DPA( imsi != null
+
+      ,            rid: "UGM_03_heavy_audio"
+      ,           parm: "audio_count_grp_eea"
+
+      ,            val: get             (                      "audio_count_grp_eea"               ) != null
+      ,       parm_val: getRuleParameter("UGM_03_heavy_audio", "audio_count_grp_eea",  String.class) != null
+
+      ,                 val == parm_val
+   )
+
+then
+   group      = dpa.getRuleParameter(rid, "group"     , String.class); if (group      == null) group      = "heavy_audio"
+   percentage = dpa.getRuleParameter(rid, "percentage", Double.class); if (percentage == null) percentage = 0.25d
+
+   if (log.isDebugEnabled()) log.debug("Rule "+rid+" fired: {'imsi': '"+dpa.imsi+"'"\
+      +                                                  ", 'group': '"+group+"'"\
+      +                                             ", 'pencentage': "+percentage+"}"\
+      +                                                ", condition: ("+parm+" == '"+val+"')")
+
+   dpa.write_userGroup(dpa.imsi, group.toString(), percentage.toString())
+end
+/**/
+
+
+/*
+ * customer_type_last_eea == PRE => group: 'prepaid', percentage: 0.25
+ */
+
+/*
+ * @rule_id    = UGM_04_prepaid
+ * @parameters = {"customer_type_last_eea": "PRE", "percentage": 0.25}
+ */
+rule "UGM_04_prepaid"
+
+when
+   dpa: Event_DPA( imsi != null
+
+      ,            rid: "UGM_04_prepaid"
+      ,           parm: "customer_type_last_eea"
+
+      ,            val: get             (                  "customer_type_last_eea"               ) != null
+      ,       parm_val: getRuleParameter("UGM_04_prepaid", "customer_type_last_eea",  String.class) != null
+
+      ,                 val == parm_val
+   )
+
+then
+   group      = dpa.getRuleParameter(rid, "group"     , String.class); if (group      == null) group      = "prepaid"
+   percentage = dpa.getRuleParameter(rid, "percentage", Double.class); if (percentage == null) percentage = 0.25d
+
+   if (log.isDebugEnabled()) log.debug("Rule "+rid+" fired: {'imsi': '"+dpa.imsi+"'"\
+      +                                                  ", 'group': '"+group+"'"\
+      +                                             ", 'pencentage': "+percentage+"}"\
+      +                                                ", condition: ("+parm+" == '"+val+"')")
+
+   dpa.write_userGroup(dpa.imsi, group.toString(), percentage.toString())
+end
+/**/
+
+/*
+ * @rule_id    = UGM_03_ios_lte
+ * @parameters = {"terminal.access_capability": "LTE", "terminal.os": "IOS", "group": "ios_lte", "percentage": 0.2d}
+ */
+rule "UGM_03_ios_lte"
+
+when
+   dpa: Event_DPA(    imsi != null
+
+      ,               rid: "UGM_03_ios_lte"
+
+      ,             parm1: "terminal.os"
+      ,             parm2: "terminal.access_capability"
+
+      ,               tac: get("imeitac_last_eea")          != null
+      ,                    setTerminal((String) tac)        != null
+
+      ,              val1: getTerminal("os")                != null
+      ,              val2: getTerminal("access_capability") != null
+
+      ,         parm_val1: getRuleParameter("UGM_03_ios_lte", "terminal.os"               ,  String.class) != null
+      ,         parm_val2: getRuleParameter("UGM_03_ios_lte", "terminal.access_capability",  String.class) != null
+
+      ,                    val1.equalsIgnoreCase(parm_val1)
+         &&                val2.equalsIgnoreCase(parm_val2)
+   )
+
+then
+   group      = dpa.getRuleParameter(rid, "group"     , String.class); if (group      == null) group      = "ios_lte"
+   percentage = dpa.getRuleParameter(rid, "percentage", Double.class); if (percentage == null) percentage = 1.0d
+
+   if (log.isDebugEnabled()) log.debug("Rule "+rid+" fired: {'imsi': '"+dpa.imsi+"'"\
+      +                                                  ", 'group': '"+group+"'"\
+      +                                             ", 'pencentage': "+percentage+"}"\
+      +                                                ", condition: ("+parm1+" == '"+val1+"'"\
+      +                                                          " && "+parm2+" == '"+val2+"')")
+
+   dpa.write_userGroup(dpa.imsi, group.toString(), percentage.toString())
+end
+/**/
+
+
+/*
+ * @rule_id    = UGM_03_android_lte
+ * @parameters = {"terminal.access_capability": "LTE", "terminal.os": "ANDROID", "group": "android_lte", "percentage": 0.2d}
+ */
+rule "UGM_03_android_lte"
+
+when
+   dpa: Event_DPA(    imsi != null
+
+      ,               rid: "UGM_03_android_lte"
+
+      ,             parm1: "terminal.os"
+      ,             parm2: "terminal.access_capability"
+
+      ,               tac: get("imeitac_last_eea")          != null
+      ,                    setTerminal((String) tac)        != null
+
+      ,              val1: getTerminal("os")                != null
+      ,              val2: getTerminal("access_capability") != null
+
+      ,         parm_val1: getRuleParameter("UGM_03_android_lte", "terminal.os"               ,  String.class) != null
+      ,         parm_val2: getRuleParameter("UGM_03_android_lte", "terminal.access_capability",  String.class) != null
+
+      ,                    val1.equalsIgnoreCase(parm_val1)
+         &&                val2.equalsIgnoreCase(parm_val2)
+   )
+
+then
+   group      = dpa.getRuleParameter(rid, "group"     , String.class); if (group      == null) group      = "android_lte"
+   percentage = dpa.getRuleParameter(rid, "percentage", Double.class); if (percentage == null) percentage = 1.0d
+
+   if (log.isDebugEnabled()) log.debug("Rule "+rid+" fired: {'imsi': '"+dpa.imsi+"'"\
+      +                                                  ", 'group': '"+group+"'"\
+      +                                             ", 'pencentage': "+percentage+"}"\
+      +                                                ", condition: ("+parm1+" == '"+val1+"'"\
+      +                                                          " && "+parm2+" == '"+val2+"')")
+
+   dpa.write_userGroup(dpa.imsi, group.toString(), percentage.toString())
+end
+/**/
+
+// ----------------------------------------------------------------------------------------------------------------------------
+/*
+ * The following rule is checked after all rules are examined, it just retracts DPA events from knowledge base,
+ * immediately after all rules are examined.
+ */
+
+/*
+ * @rule_id = RETRACT_DPA
+ */
+rule "RETRACT_DPA"
+
+   salience -100
+
+when
+   e: Event_DPA()
+
+then
+   retract(e)
+
+   if (log.isDebugEnabled()) log.debug("Retracted: DPA('imsi': '"+e.imsi+"')")
+end
+
+//SNCD rules
+
+/**/
+rule "UGM_01_sncddefault"
+
+when
+   sncd: Event_SNCD( imsi != null
+
+      ,             rid: "UGM_01_sncddefault"
+      ,            parm: "customer_class_last_eea"
+
+      ,             val: get             (                  "customer_class_last_eea"              ) != null
+      ,       parm_vals: getRuleParameter("UGM_01_sncddefault", "customer_class_last_eea", String.class) != null
+
+      ,                  !strContainsVal(parm_vals, val)
+   )
+
+then
+   group      = sncd.getRuleParameter(rid, "group"     , String.class); if (group      == null) group      = "defaultsncd"
+   percentage = sncd.getRuleParameter(rid, "percentage", Double.class); if (percentage == null) percentage = 0.5d
+
+   if (log.isDebugEnabled()) log.debug("Rule "+rid+" fired: {'imsi': '"+sncd.imsi+"'"\
+      +                                                  ", 'group': '"+group+"'"\
+      +                                             ", 'pencentage': "+percentage+"}"\
+      +                                                ", condition: ("+parm+" == '"+val+"')")
+
+   sncd.write_userGroup(sncd.imsi, group.toString(), percentage.toString())
+end
+/**/
+
+rule "UGM_01_businesssncd"
+
+when
+   sncd: Event_SNCD( imsi != null
+
+      ,            rid: "UGM_01_businesssncd"
+      ,           parm: "customer_class_last_eea"
+
+      ,            val: get             (                   "customer_class_last_eea"              ) != null
+      ,      parm_vals: getRuleParameter("UGM_01_businesssncd", "customer_class_last_eea", String.class) != null
+
+      ,                strContainsVal(parm_vals, val)
+   )
+
+then
+   group      = sncd.getRuleParameter(rid, "group"     , String.class); if (group      == null) group      = "businesssncd"
+   percentage = sncd.getRuleParameter(rid, "percentage", Double.class); if (percentage == null) percentage = 0.5d
+
+   if (log.isDebugEnabled()) log.debug("Rule "+rid+" fired: {'imsi': '"+sncd.imsi+"'"\
+      +                                                  ", 'group': '"+group+"'"\
+      +                                             ", 'pencentage': "+percentage+"}"\
+      +                                                ", condition: ("+parm+" == '"+val+"')")
+
+   sncd.write_userGroup(sncd.imsi, group.toString(), percentage.toString())
+end
+/**/
+
+
+// End of Internal processing rules.
+
+
+
+// Post-process, Timer Retract Rules ==========================================================================================
+/*
+ * @rule_id = retract_timer_1_min
+ */
+rule "retract_timer_1_min"
+   duration(60s)
+when
+   t: Event_Timer(blockingcat == "1m")
+then
+   retract(t)
+end
+
+/*
+ * @rule_id = retract_timer_15_min
+ */
+rule "retract_timer_15_min"
+   duration(900s)
+when
+   t: Event_Timer(blockingcat == "15m")
+then
+   retract(t)
+end
+
+/*
+ * @rule_id = retract_timer_1_hour
+ */
+rule "retract_timer_1_hour"
+   duration(3600s)
+when
+   t: Event_Timer(blockingcat == "1h")
+then
+   retract(t)
+end
+
+rule "retract_timer_1_day"
+   duration(86400s)
+when
+   t: Event_Timer(blockingcat == "1d")
+then
+   retract(t)
+end

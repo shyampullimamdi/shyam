@@ -1,0 +1,97 @@
+{
+  "name": "sli-group-mapper",
+  "version": "!{version}",
+  "apps": [
+    {
+      "name": "SLI_group-mapper",
+      "apptype": "java",
+      "class": "com.ericsson.eea.ark.sli.grouping.CLI",
+      "args": "-d 20141205 -e 20141205 -i dpa",
+      "num_containers": 1,
+      "num_containers_auto": false,
+      "num_cores": 2,
+      "mem": 3072,
+      "exec": "sli-group-mapper-!{version}.jar",
+      "autostart": "false",
+      "deps": [
+        "!{common.jarName}",
+        "!{esr.jarName}",
+        "!{function-library.jarName}",
+        "!{commons-lang3.jarName}",
+        "parquet-avro-!{parquetVersion}.jar",
+        "avro-!{avroVersion}.jar",
+        "avro-mapred-!{avroVersion}.jar",
+        "parquet-common-!{parquetVersion}.jar",
+        "parquet-column-!{parquetVersion}.jar",
+        "parquet-hadoop-!{parquetVersion}.jar",
+        "parquet-encoding-!{parquetVersion}.jar",
+        "parquet-format-!{parquetFormatVersion}.jar",
+        "hive-serde-!{hiveVersion}.jar",
+        "drools-compiler-!{droolsVersion}-mapr.jar",
+        "!{drools-core.jarName}",
+        "!{drools-verifier.jarName}",
+        "!{knowledge-api.jarName}",
+        "knowledge-internal-api-!{droolsVersion}.jar",
+        "janino-!{janinoVersion}.jar",
+        "mvel2-!{mvel2Version}.jar",
+        "antlr-runtime-!{antlrVersion}.jar",
+        "!{args4j.jarName}"
+       ],
+     "resources": [
+        "group-mapper.conf",
+        "log4j.xml"
+      ]
+    },
+    {
+      "name": "SLI_grp-mapper-init",
+      "apptype": "java",
+      "class": "com.ericsson.eea.ark.sli.grouping.util.InitializeSliGM",
+      "args": "--version !{version}",
+      "num_containers": 1,
+      "num_containers_auto": true,
+      "num_cores": 1,
+      "mem": 2048,
+      "exec": "sli-group-mapper-!{version}.jar",
+      "autostart": "true",
+      "resources": [
+        "rule_descriptions.csv",
+        "rule_parameters.csv",
+        "SLI-user_groups-rules-base.drl",
+        "log4j.xml"
+      ]
+    }
+  ],
+  "init": {
+    "name": "SLI_grp-mapper-init-startup",
+    "apptype": "java",
+    "class": "com.ericsson.eea.ark.sli.grouping.util.InitializeSliGM",
+    "args": "--version !{version}",
+    "num_containers": 1,
+    "num_containers_auto": true,
+    "num_cores": 1,
+    "mem": 2048,
+    "exec": "sli-group-mapper-!{version}.jar",
+    "resources": [
+        "rule_descriptions.csv",
+        "rule_parameters.csv",
+        "SLI-user_groups-rules-base.drl",
+        "log4j.xml"
+    ]
+  },
+  "upgrade": {
+    "name": "SLI_grp-mapper-upgrade",
+    "apptype": "java",
+      "class": "com.ericsson.eea.ark.sli.grouping.util.UpgradeSliGM",
+      "args": "--upgrade_version 1",
+      "num_containers": 1,
+      "num_containers_auto": 1,
+      "num_cores": 1,
+      "mem": 2048,
+      "exec": "sli-group-mapper-!{version}.jar",
+      "deps": [
+      ],
+      "resources": [
+        "log4j.xml"
+      ]
+  }
+}
